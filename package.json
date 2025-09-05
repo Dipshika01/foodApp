@@ -1,0 +1,13 @@
+{
+  "name": "foodapp",
+  "private": true,
+  "workspaces": ["food-app-frontend", "food-app-backend"],
+  "scripts": {
+    "dev:frontend": "npm --prefix food-app-frontend run dev",
+    "dev:backend": "npm --prefix food-app-backend run dev",
+    "dev": "concurrently -n front,back -c blue,magenta \"npm:dev:frontend\" \"npm:dev:backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

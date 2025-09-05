@@ -6,8 +6,8 @@ const PaymentMethodSchema = new Schema(
     type: { type: String, enum: ["CARD", "UPI", "BANK"], default: "CARD" },
     country: { type: String, enum: ["India", "America"], required: true },
     isDefault: { type: Boolean, default: false },
-    details: { type: Schema.Types.Mixed, default: {} }, // keep it simple
-    createdBy: { type: Types.ObjectId, ref: "User" },   // admin user id
+    details: { type: Schema.Types.Mixed, default: {} }, 
+    createdBy: { type: Types.ObjectId, ref: "User" },  
   },
   { timestamps: true }
 );

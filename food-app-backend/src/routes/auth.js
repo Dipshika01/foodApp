@@ -1,11 +1,14 @@
 import express from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcrypt";         // ok if you installed bcrypt; bcryptjs also works
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 const router = express.Router();
 
-// signup (for dev seeding)
+// signup (for dev)
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, role, country } = req.body;
@@ -17,22 +20,52 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// login
+// login (hardened)
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) return res.status(401).json({ error: "Invalid credentials" });
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
 
-  const match = await bcrypt.compare(password, user.passwordHash);
-  if (!match) return res.status(401).json({ error: "Invalid credentials" });
+    const user = await User.findOne({ email });
+    // same error msg for both cases (don’t leak which field is wrong)
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-  const token = jwt.sign(
-    { sub: user._id, role: user.role, country: user.country },
-    process.env.JWT_SECRET,
-    { expiresIn: "8h" }
-  );
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-  res.json({ token });
+    if (!process.env.JWT_SECRET) {
+      // fail fast if secret is missing (this would otherwise throw)
+      return res.status(500).json({ error: "Server config error: JWT secret missing" });
+    }
+
+    const token = jwt.sign(
+  {
+    id: user._id.toString(),  
+    role: user.role,         
+    country: user.country,
+    email: user.email,
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "8h" }
+);
+
+    // return token + minimal user info (what the UI needs)
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        country: user.country,
+      },
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Something went wrong while logging in" });
+  }
 });
 
 export default router;

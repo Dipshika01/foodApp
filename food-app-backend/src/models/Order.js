@@ -1,26 +1,51 @@
-import { Schema, model, Types } from "mongoose";
+import mongoose from "mongoose";
 
-const OrderItemSchema = new Schema(
+
+
+const PaymentInfoSchema = new mongoose.Schema(
   {
-    menuItemId: { type: Types.ObjectId },
-    name: String,
-    price: Number,
-    qty: Number,
+    methodId: String,
+    txnId:    String,
+    amount:   Number,
+    when:     Date,
   },
   { _id: false }
 );
 
-const OrderSchema = new Schema(
+const OrderItemSchema = new mongoose.Schema(
   {
-    userId: { type: Types.ObjectId, ref: "User", required: true },
-    country: { type: String, enum: ["India", "America"], required: true },
-    restaurantId: { type: Types.ObjectId, ref: "Restaurant", required: true },
+    restaurantId: { type: String, required: true },
+    restaurantName: String, // optional on each item
+    itemId: { type: String, required: true },
+    name: String,
+    price: { type: Number, required: true },
+    qty: { type: Number, default: 1 },
+  },
+  { _id: false }
+);
+
+const OrderSchema = new mongoose.Schema(
+  {
+    orderNo: { type: String, required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    restaurantId: { type: String, required: true, index: true },
+    restaurantName: { type: String, default: "" },
+
+    country: { type: String, enum: ["India", "America"], required: true, index: true },
+
     items: { type: [OrderItemSchema], default: [] },
-    status: { type: String, enum: ["DRAFT", "PLACED", "CANCELLED"], default: "DRAFT" },
     total: { type: Number, default: 0 },
-    paymentMethodId: { type: Types.ObjectId, ref: "PaymentMethod" },
+    status: { type: String, enum: ["Placed", "Cancelled", "Fulfilled"], default: "Placed" },
+
+    paymentMethod: { type: String, enum: ["COD", "CARD", "UPI"], required: true },
+    paymentStatus: { type: String, enum: ["paid", "cod", "failed"], required: true },
+    txnId: { type: String, default: "" },
+    paidAt: { type: Date },
   },
   { timestamps: true }
 );
+// helpful indexes for common queries
+// OrderSchema.index({ userId: 1, createdAt: -1 });
+// OrderSchema.index({ country: 1, createdAt: -1 });
 
-export default model("Order", OrderSchema);
+export default mongoose.model("Order", OrderSchema);
